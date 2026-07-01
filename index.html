@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Fullscreen Creator</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .controls {
+      width: 280px;
+    }
+
+    .stage-wrap {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    canvas {
+      width: 960px;
+      height: 540px;
+      background: #222;
+      border: 1px solid #444;
+      cursor: move;
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+      margin-bottom: 6px;
+    }
+
+    input, button, select {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 18px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <h2>Fullscreen Creator</h2>
+
+    <label>Background</label>
+    <select id="bgSelect">
+      <option value="gradient">Dark Gradient</option>
+      <option value="blue">Blue</option>
+      <option value="black">Black</option>
+      <option value="gray">Gray</option>
+    </select>
+
+    <label>Upload Background</label>
+    <input type="file" id="bgUpload" accept="image/*" />
+
+    <label>Upload Screenshot</label>
+    <input type="file" id="screenshotUpload" accept="image/*" />
+
+    <label>Screenshot Size</label>
+    <input type="range" id="scale" min="0.2" max="1.5" step="0.01" value="0.75" />
+
+    <label>X Position</label>
+    <input type="range" id="xPos" min="0" max="1920" value="480" />
+
+    <label>Y Position</label>
+    <input type="range" id="yPos" min="0" max="1080" value="180" />
+
+    <button id="saveBtn">Save JPEG</button>
+
+    <p style="font-size: 13px; color: #bbb;">
+      Tip: You can also paste a screenshot directly from your clipboard.
+    </p>
+  </div>
+
+  <div class="stage-wrap">
+    <canvas id="canvas" width="1920" height="1080"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const bgSelect = document.getElementById("bgSelect");
+    const bgUpload = document.getElementById("bgUpload");
+    const screenshotUpload = document.getElementById("screenshotUpload");
+    const scaleInput = document.getElementById("scale");
+    const xPos = document.getElementById("xPos");
+    const yPos = document.getElementById("yPos");
+    const saveBtn = document.getElementById("saveBtn");
+
+    let bgImage = null;
+    let screenshot = null;
+    let dragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    function drawBackground() {
+      if (bgImage) {
+        ctx.drawImage(bgImage, 0, 0, 1920, 1080);
+        return;
+      }
+
+      const bg = bgSelect.value;
+
+      if (bg === "gradient") {
+        const gradient = ctx.createLinearGradient(0, 0, 1920, 1080);
+        gradient.addColorStop(0, "#111827");
+        gradient.addColorStop(1, "#020617");
+        ctx.fillStyle = gradient;
+      } else if (bg === "blue") {
+        ctx.fillStyle = "#0f172a";
+      } else if (bg === "black") {
+        ctx.fillStyle = "#000000";
+      } else {
+        ctx.fillStyle = "#374151";
+      }
+
+      ctx.fillRect(0, 0, 1920, 1080);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, 1920, 1080);
+      drawBackground();
+
+      if (!screenshot) return;
+
+      const scale = Number(scaleInput.value);
+      const width = screenshot.width * scale;
+      const height = screenshot.height * scale;
+      const x = Number(xPos.value);
+      const y = Number(yPos.value);
+
+      ctx.shadowColor = "rgba(0,0,0,0.45)";
+      ctx.shadowBlur = 40;
+      ctx.shadowOffsetY = 18;
+
+      ctx.drawImage(screenshot, x, y, width, height);
+
+      ctx.shadowColor = "transparent";
+    }
+
+    function loadImageFromFile(file, callback) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => callback(img);
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    bgSelect.addEventListener("change", () => {
+      bgImage = null;
+      draw();
+    });
+
+    bgUpload.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      loadImageFromFile(file, img => {
+        bgImage = img;
+        draw();
+      });
+    });
+
+    screenshotUpload.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      loadImageFromFile(file, img => {
+        screenshot = img;
+        draw();
+      });
+    });
+
+    scaleInput.addEventListener("input", draw);
+    xPos.addEventListener("input", draw);
+    yPos.addEventListener("input", draw);
+
+    window.addEventListener("paste", e => {
+      const items = e.clipboardData.items;
+
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          loadImageFromFile(file, img => {
+            screenshot = img;
+            draw();
+          });
+        }
+      }
+    });
+
+    canvas.addEventListener("mousedown", e => {
+      if (!screenshot) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) * 2;
+      const mouseY = (e.clientY - rect.top) * 2;
+
+      dragging = true;
+      dragOffsetX = mouseX - Number(xPos.value);
+      dragOffsetY = mouseY - Number(yPos.value);
+    });
+
+    window.addEventListener("mousemove", e => {
+      if (!dragging) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) * 2;
+      const mouseY = (e.clientY - rect.top) * 2;
+
+      xPos.value = Math.max(0, Math.min(1920, mouseX - dragOffsetX));
+      yPos.value = Math.max(0, Math.min(1080, mouseY - dragOffsetY));
+
+      draw();
+    });
+
+    window.addEventListener("mouseup", () => {
+      dragging = false;
+    });
+
+    async function canvasToJpegUnder2MB() {
+      let quality = 0.92;
+
+      while (quality >= 0.45) {
+        const blob = await new Promise(resolve =>
+          canvas.toBlob(resolve, "image/jpeg", quality)
+        );
+
+        if (blob.size <= 2 * 1024 * 1024) {
+          return blob;
+        }
+
+        quality -= 0.05;
+      }
+
+      return await new Promise(resolve =>
+        canvas.toBlob(resolve, "image/jpeg", 0.4)
+      );
+    }
+
+    saveBtn.addEventListener("click", async () => {
+      draw();
+
+      const blob = await canvasToJpegUnder2MB();
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "video-fullscreen.jpg";
+      a.click();
+
+      URL.revokeObjectURL(url);
+    });
+
+    draw();
+  </script>
+</body>
+</html>
