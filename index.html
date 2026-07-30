@@ -5,103 +5,310 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Video Fullscreen Creator</title>
   <style>
+    :root {
+      color-scheme: dark;
+      --panel: #181818;
+      --panel-2: #242424;
+      --border: #3a3a3a;
+      --text: #ffffff;
+      --muted: #b8b8b8;
+      --accent: #2f7df6;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      display: flex;
-      gap: 20px;
-      padding: 20px;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #101010;
+      color: var(--text);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 22px;
+      min-height: 100vh;
+      padding: 22px;
     }
 
     .controls {
-      width: 280px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      align-self: start;
+      position: sticky;
+      top: 22px;
+      max-height: calc(100vh - 44px);
+      overflow-y: auto;
     }
 
-    .stage-wrap {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
+    h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
     }
 
-    canvas {
-      width: 960px;
-      height: 540px;
-      background: #222;
-      border: 1px solid #444;
-      cursor: move;
+    .subhead {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .section-title {
+      margin: 20px 0 10px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #d8d8d8;
+    }
+
+    .background-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .background-option {
+      appearance: none;
+      border: 2px solid transparent;
+      border-radius: 9px;
+      padding: 0;
+      overflow: hidden;
+      background: #111;
+      cursor: pointer;
+      text-align: left;
+      color: white;
+    }
+
+    .background-option:hover { border-color: #777; }
+    .background-option.active { border-color: var(--accent); }
+
+    .background-option img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+
+    .background-option span {
+      display: block;
+      padding: 7px 8px;
+      font-size: 12px;
+      line-height: 1.2;
+      background: var(--panel-2);
     }
 
     label {
       display: block;
-      margin-top: 16px;
-      margin-bottom: 6px;
+      margin: 15px 0 7px;
+      font-size: 13px;
+      font-weight: 700;
     }
 
-    input, button, select {
+    input[type="file"], button.action {
       width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
     }
 
-    button {
-      margin-top: 18px;
+    input[type="file"] {
+      padding: 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: white;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .range-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    button.action {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 12px;
       cursor: pointer;
-      font-weight: bold;
+      font-weight: 700;
+    }
+
+    #saveBtn {
+      background: var(--accent);
+      color: white;
+    }
+
+    #resetBtn,
+    #centerHBtn,
+    #centerVBtn {
+      background: #343434;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    .align-row {
+      margin-top: 12px;
+    }
+
+    .tip {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin: 14px 0 0;
+    }
+
+    .stage-wrap {
+      min-width: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .canvas-shell {
+      width: 100%;
+      max-width: 1280px;
+      padding: 16px;
+      background: #191919;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      background: #222;
+      border-radius: 8px;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    canvas.dragging { cursor: grabbing; }
+
+    .status {
+      margin-top: 10px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .controls { position: static; max-height: none; }
     }
   </style>
 </head>
 <body>
-  <div class="controls">
-    <h2>Fullscreen Creator</h2>
+  <main class="app">
+    <aside class="controls">
+      <h1>Fullscreen Creator</h1>
+      <p class="subhead">Create a 1920 × 1080 video fullscreen and export an optimized JPEG under 2 MB.</p>
 
-    <label>Background</label>
-    <select id="bgSelect">
-      <option value="gradient">Dark Gradient</option>
-      <option value="blue">Blue</option>
-      <option value="black">Black</option>
-      <option value="gray">Gray</option>
-    </select>
+      <div class="section-title">Choose a background</div>
+      <div class="background-grid" id="backgroundGrid">
+        <button class="background-option active" type="button" data-src="assets/szn-podcast.jpg">
+          <img src="assets/szn-podcast.jpg" alt="SZN Podcast background" />
+          <span>SZN Podcast</span>
+        </button>
+        <button class="background-option" type="button" data-src="assets/flyers-talk.jpg">
+          <img src="assets/flyers-talk.jpg" alt="Flyers Talk background" />
+          <span>Flyers Talk</span>
+        </button>
+        <button class="background-option" type="button" data-src="assets/eagle-eye.jpg">
+          <img src="assets/eagle-eye.jpg" alt="Eagle Eye background" />
+          <span>Eagle Eye</span>
+        </button>
+        <button class="background-option" type="button" data-src="assets/phillies-talk.jpg">
+          <img src="assets/phillies-talk.jpg" alt="Phillies Talk background" />
+          <span>Phillies Talk</span>
+        </button>
+        <button class="background-option" type="button" data-src="assets/sixers-talk.png">
+          <img src="assets/sixers-talk.png" alt="Sixers Talk background" />
+          <span>Sixers Talk</span>
+        </button>
+        <button class="background-option" type="button" data-src="assets/takeoff.jpg">
+          <img src="assets/takeoff.jpg" alt="Takeoff background" />
+          <span>Takeoff</span>
+        </button>
+      </div>
 
-    <label>Upload Background</label>
-    <input type="file" id="bgUpload" accept="image/*" />
+      <label for="bgUpload">Upload a custom background</label>
+      <input type="file" id="bgUpload" accept="image/*" />
 
-    <label>Upload Screenshot</label>
-    <input type="file" id="screenshotUpload" accept="image/*" />
+      <div class="section-title">Screenshot</div>
+      <label for="screenshotUpload">Upload screenshot</label>
+      <input type="file" id="screenshotUpload" accept="image/*" />
 
-    <label>Screenshot Size</label>
-    <input type="range" id="scale" min="0.2" max="1.5" step="0.01" value="0.75" />
+      <label for="scale">Screenshot size</label>
+      <input type="range" id="scale" min="0.1" max="2.5" step="0.01" value="0.75" />
+      <div class="range-row"><span>Smaller</span><span id="scaleValue">75%</span><span>Larger</span></div>
 
-    <label>X Position</label>
-    <input type="range" id="xPos" min="0" max="1920" value="480" />
+      <label for="xPos">Horizontal position</label>
+      <input type="range" id="xPos" min="-1920" max="1920" step="1" value="480" />
 
-    <label>Y Position</label>
-    <input type="range" id="yPos" min="0" max="1080" value="180" />
+      <label for="yPos">Vertical position</label>
+      <input type="range" id="yPos" min="-1080" max="1080" step="1" value="180" />
 
-    <button id="saveBtn">Save JPEG</button>
+      <div class="button-row align-row">
+        <button class="action" id="centerHBtn" type="button">Center Horizontally</button>
+        <button class="action" id="centerVBtn" type="button">Center Vertically</button>
+      </div>
 
-    <p style="font-size: 13px; color: #bbb;">
-      Tip: You can also paste a screenshot directly from your clipboard.
-    </p>
-  </div>
+      <div class="button-row">
+        <button class="action" id="saveBtn" type="button">Save JPEG</button>
+        <button class="action" id="resetBtn" type="button">Reset</button>
+      </div>
 
-  <div class="stage-wrap">
-    <canvas id="canvas" width="1920" height="1080"></canvas>
-  </div>
+      <p class="tip">You can paste a screenshot with Ctrl+V or Command+V, then drag it directly on the canvas.</p>
+    </aside>
+
+    <section class="stage-wrap">
+      <div class="canvas-shell">
+        <canvas id="canvas" width="1920" height="1080"></canvas>
+        <div class="status" id="status">1920 × 1080 output</div>
+      </div>
+    </section>
+  </main>
 
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
-    const bgSelect = document.getElementById("bgSelect");
+    const backgroundGrid = document.getElementById("backgroundGrid");
+    const backgroundOptions = [...document.querySelectorAll(".background-option")];
     const bgUpload = document.getElementById("bgUpload");
     const screenshotUpload = document.getElementById("screenshotUpload");
     const scaleInput = document.getElementById("scale");
+    const scaleValue = document.getElementById("scaleValue");
     const xPos = document.getElementById("xPos");
     const yPos = document.getElementById("yPos");
     const saveBtn = document.getElementById("saveBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const centerHBtn = document.getElementById("centerHBtn");
+    const centerVBtn = document.getElementById("centerVBtn");
+    const status = document.getElementById("status");
+
+    const DEFAULT_BACKGROUND = "assets/szn-podcast.jpg";
+    const DEFAULT_SCALE = 0.75;
 
     let bgImage = null;
     let screenshot = null;
@@ -109,33 +316,67 @@
     let dragOffsetX = 0;
     let dragOffsetY = 0;
 
-    function drawBackground() {
-      if (bgImage) {
-        ctx.drawImage(bgImage, 0, 0, 1920, 1080);
-        return;
-      }
+    function loadImageFromUrl(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
 
-      const bg = bgSelect.value;
+    function loadImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
 
-      if (bg === "gradient") {
-        const gradient = ctx.createLinearGradient(0, 0, 1920, 1080);
-        gradient.addColorStop(0, "#111827");
-        gradient.addColorStop(1, "#020617");
-        ctx.fillStyle = gradient;
-      } else if (bg === "blue") {
-        ctx.fillStyle = "#0f172a";
-      } else if (bg === "black") {
-        ctx.fillStyle = "#000000";
+    function drawCoverImage(img, x, y, width, height) {
+      const imageRatio = img.width / img.height;
+      const targetRatio = width / height;
+      let sourceWidth = img.width;
+      let sourceHeight = img.height;
+      let sourceX = 0;
+      let sourceY = 0;
+
+      if (imageRatio > targetRatio) {
+        sourceWidth = img.height * targetRatio;
+        sourceX = (img.width - sourceWidth) / 2;
       } else {
-        ctx.fillStyle = "#374151";
+        sourceHeight = img.width / targetRatio;
+        sourceY = (img.height - sourceHeight) / 2;
       }
 
-      ctx.fillRect(0, 0, 1920, 1080);
+      ctx.drawImage(
+        img,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        x,
+        y,
+        width,
+        height
+      );
     }
 
     function draw() {
-      ctx.clearRect(0, 0, 1920, 1080);
-      drawBackground();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (bgImage) {
+        drawCoverImage(bgImage, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "#111827";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
       if (!screenshot) return;
 
@@ -145,132 +386,213 @@
       const x = Number(xPos.value);
       const y = Number(yPos.value);
 
-      ctx.shadowColor = "rgba(0,0,0,0.45)";
+      ctx.save();
+      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
       ctx.shadowBlur = 40;
       ctx.shadowOffsetY = 18;
-
       ctx.drawImage(screenshot, x, y, width, height);
-
-      ctx.shadowColor = "transparent";
+      ctx.restore();
     }
 
-    function loadImageFromFile(file, callback) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => callback(img);
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
+    function fitAndCenterScreenshot() {
+      if (!screenshot) return;
+
+      const maxWidth = 1500;
+      const maxHeight = 850;
+      const fitScale = Math.min(maxWidth / screenshot.width, maxHeight / screenshot.height, 1.5);
+
+      scaleInput.value = Math.max(0.1, fitScale).toFixed(2);
+      updateScaleLabel();
+
+      const width = screenshot.width * Number(scaleInput.value);
+      const height = screenshot.height * Number(scaleInput.value);
+      xPos.value = Math.round((canvas.width - width) / 2);
+      yPos.value = Math.round((canvas.height - height) / 2);
     }
 
-    bgSelect.addEventListener("change", () => {
-      bgImage = null;
+    function updateScaleLabel() {
+      scaleValue.textContent = `${Math.round(Number(scaleInput.value) * 100)}%`;
+    }
+
+    async function selectBackground(src, selectedButton = null) {
+      try {
+        bgImage = await loadImageFromUrl(src);
+        backgroundOptions.forEach(button => button.classList.toggle("active", button === selectedButton));
+        bgUpload.value = "";
+        draw();
+      } catch (error) {
+        console.error("Unable to load background:", error);
+        status.textContent = "Unable to load that background.";
+      }
+    }
+
+    backgroundGrid.addEventListener("click", async event => {
+      const button = event.target.closest(".background-option");
+      if (!button) return;
+      await selectBackground(button.dataset.src, button);
+    });
+
+    bgUpload.addEventListener("change", async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        bgImage = await loadImageFromFile(file);
+        backgroundOptions.forEach(button => button.classList.remove("active"));
+        draw();
+      } catch (error) {
+        console.error("Unable to load custom background:", error);
+      }
+    });
+
+    screenshotUpload.addEventListener("change", async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        screenshot = await loadImageFromFile(file);
+        fitAndCenterScreenshot();
+        draw();
+      } catch (error) {
+        console.error("Unable to load screenshot:", error);
+      }
+    });
+
+    window.addEventListener("paste", async event => {
+      const imageItem = [...event.clipboardData.items].find(item => item.type.startsWith("image/"));
+      if (!imageItem) return;
+
+      try {
+        screenshot = await loadImageFromFile(imageItem.getAsFile());
+        fitAndCenterScreenshot();
+        draw();
+      } catch (error) {
+        console.error("Unable to paste screenshot:", error);
+      }
+    });
+
+    scaleInput.addEventListener("input", () => {
+      updateScaleLabel();
       draw();
     });
-
-    bgUpload.addEventListener("change", e => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      loadImageFromFile(file, img => {
-        bgImage = img;
-        draw();
-      });
-    });
-
-    screenshotUpload.addEventListener("change", e => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      loadImageFromFile(file, img => {
-        screenshot = img;
-        draw();
-      });
-    });
-
-    scaleInput.addEventListener("input", draw);
     xPos.addEventListener("input", draw);
     yPos.addEventListener("input", draw);
 
-    window.addEventListener("paste", e => {
-      const items = e.clipboardData.items;
+    function getCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * (canvas.width / rect.width),
+        y: (event.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
 
-      for (const item of items) {
-        if (item.type.startsWith("image/")) {
-          const file = item.getAsFile();
-          loadImageFromFile(file, img => {
-            screenshot = img;
-            draw();
-          });
-        }
-      }
-    });
-
-    canvas.addEventListener("mousedown", e => {
+    canvas.addEventListener("pointerdown", event => {
       if (!screenshot) return;
 
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = (e.clientX - rect.left) * 2;
-      const mouseY = (e.clientY - rect.top) * 2;
+      const point = getCanvasPoint(event);
+      const width = screenshot.width * Number(scaleInput.value);
+      const height = screenshot.height * Number(scaleInput.value);
+      const x = Number(xPos.value);
+      const y = Number(yPos.value);
+
+      if (point.x < x || point.x > x + width || point.y < y || point.y > y + height) return;
 
       dragging = true;
-      dragOffsetX = mouseX - Number(xPos.value);
-      dragOffsetY = mouseY - Number(yPos.value);
+      dragOffsetX = point.x - x;
+      dragOffsetY = point.y - y;
+      canvas.classList.add("dragging");
+      canvas.setPointerCapture(event.pointerId);
     });
 
-    window.addEventListener("mousemove", e => {
+    canvas.addEventListener("pointermove", event => {
       if (!dragging) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = (e.clientX - rect.left) * 2;
-      const mouseY = (e.clientY - rect.top) * 2;
-
-      xPos.value = Math.max(0, Math.min(1920, mouseX - dragOffsetX));
-      yPos.value = Math.max(0, Math.min(1080, mouseY - dragOffsetY));
-
+      const point = getCanvasPoint(event);
+      xPos.value = Math.round(point.x - dragOffsetX);
+      yPos.value = Math.round(point.y - dragOffsetY);
       draw();
     });
 
-    window.addEventListener("mouseup", () => {
+    function stopDragging(event) {
       dragging = false;
+      canvas.classList.remove("dragging");
+      if (event.pointerId !== undefined && canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    canvas.addEventListener("pointerup", stopDragging);
+    canvas.addEventListener("pointercancel", stopDragging);
+
+    centerHBtn.addEventListener("click", () => {
+      if (!screenshot) return;
+      const width = screenshot.width * Number(scaleInput.value);
+      xPos.value = Math.round((canvas.width - width) / 2);
+      draw();
+    });
+
+    centerVBtn.addEventListener("click", () => {
+      if (!screenshot) return;
+      const height = screenshot.height * Number(scaleInput.value);
+      yPos.value = Math.round((canvas.height - height) / 2);
+      draw();
+    });
+
+    resetBtn.addEventListener("click", async () => {
+      screenshot = null;
+      screenshotUpload.value = "";
+      bgUpload.value = "";
+      scaleInput.value = DEFAULT_SCALE;
+      xPos.value = 480;
+      yPos.value = 180;
+      updateScaleLabel();
+      await selectBackground(DEFAULT_BACKGROUND, backgroundOptions[0]);
+      status.textContent = "1920 × 1080 output";
     });
 
     async function canvasToJpegUnder2MB() {
-      let quality = 0.92;
+      const maxBytes = 2 * 1024 * 1024;
+      let quality = 0.94;
+      let blob = null;
 
-      while (quality >= 0.45) {
-        const blob = await new Promise(resolve =>
-          canvas.toBlob(resolve, "image/jpeg", quality)
-        );
-
-        if (blob.size <= 2 * 1024 * 1024) {
-          return blob;
-        }
-
-        quality -= 0.05;
+      while (quality >= 0.35) {
+        blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+        if (blob && blob.size <= maxBytes) return { blob, quality };
+        quality -= 0.04;
       }
 
-      return await new Promise(resolve =>
-        canvas.toBlob(resolve, "image/jpeg", 0.4)
-      );
+      return { blob, quality: 0.35 };
     }
 
     saveBtn.addEventListener("click", async () => {
       draw();
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Optimizing…";
 
-      const blob = await canvasToJpegUnder2MB();
-      const url = URL.createObjectURL(blob);
+      try {
+        const { blob, quality } = await canvasToJpegUnder2MB();
+        if (!blob) throw new Error("JPEG export failed.");
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "video-fullscreen.jpg";
-      a.click();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "video-fullscreen.jpg";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-      URL.revokeObjectURL(url);
+        status.textContent = `Saved ${(blob.size / 1024 / 1024).toFixed(2)} MB JPEG at ${Math.round(quality * 100)}% quality`;
+      } catch (error) {
+        console.error(error);
+        status.textContent = "Unable to export the JPEG.";
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save JPEG";
+      }
     });
 
-    draw();
+    updateScaleLabel();
+    selectBackground(DEFAULT_BACKGROUND, backgroundOptions[0]);
   </script>
 </body>
 </html>
